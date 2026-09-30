@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem Pencatatan Pelanggaran Siswa - SMAN 1 MAJALAYA</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for statistics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        @media print {
+            body { background: white !important; }
+            header, nav, .no-print { display: none !important; }
+            .print-only { display: block !important; }
+        }
+        .print-only { display: none; }
+        /* iOS Safari input styling fix */
+        input, select, textarea {
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- HEADER SMAN 1 MAJALAYA (Tanpa Foto / Ikon) -->
+    <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="w-full sm:w-auto text-center sm:text-left">
+                <h1 class="text-lg sm:text-xl font-bold tracking-tight">SMAN 1 MAJALAYA</h1>
+                <p class="text-xs text-indigo-200 font-medium">Sistem Monitoring Disiplin & Tata Tertib Siswa</p>
+            </div>
+            <!-- Navigation Tabs Optimized for Mobile & iOS -->
+            <div class="flex items-center space-x-1 bg-indigo-800/90 p-1.5 rounded-2xl w-full sm:w-auto justify-center">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all bg-white text-indigo-700 shadow-sm flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-chart-pie"></i><span>Dashboard</span>
+                </button>
+                <button onclick="switchTab('data')" id="nav-data" class="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all text-indigo-100 hover:bg-indigo-600/50 flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-table-list"></i><span>Data</span>
+                </button>
+                <button onclick="switchTab('input')" id="nav-input" class="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all text-indigo-100 hover:bg-indigo-600/50 flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-user-plus"></i><span>Input Baru</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-5 sm:px-6 lg:px-8">
+        
+        <!-- NOTIFICATION TOAST -->
+        <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center space-x-3 bg-white px-5 py-3 rounded-2xl shadow-xl border border-slate-100">
+            <div id="toast-icon" class="text-xl"></div>
+            <div>
+                <h4 id="toast-title" class="text-sm font-semibold text-slate-800"></h4>
+                <p id="toast-msg" class="text-xs text-slate-500"></p>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: DASHBOARD ================= -->
+        <div id="view-dashboard" class="space-y-6">
+            <div class="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-6 rounded-3xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="bg-indigo-500/50 text-indigo-100 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">Portal Guru BK / Piket</span>
+                    <h2 class="text-xl sm:text-2xl font-bold mt-2">Selamat Datang di SMAN 1 Majalaya</h2>
+                    <p class="text-indigo-100 text-xs sm:text-sm mt-1">Pencatatan khusus pelanggaran atribut rambut (Putra) dan make-up (Putri) kelas X, XI, dan XII (A - F).</p>
+                </div>
+                <button onclick="switchTab('input')" class="bg-white text-indigo-700 hover:bg-indigo-50 px-5 py-3 rounded-2xl text-sm font-semibold shadow transition-all flex items-center space-x-2 shrink-0">
+                    <i class="fa-solid fa-plus-circle"></i><span>Catat Pelanggaran</span>
+                </button>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Kasus</p>
+                        <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-base">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                        </div>
+                    </div>
+                    <h3 id="stat-total" class="text-2xl sm:text-3xl font-bold text-slate-800 mt-3">0</h3>
+                    <p class="text-xs text-slate-400 mt-1">Seluruh tingkat & rombel</p>
+                </div>
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rambut (L)</p>
+                        <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-base">
+                            <i class="fa-solid fa-scissors"></i>
+                        </div>
+                    </div>
+                    <h3 id="stat-rambut" class="text-2xl sm:text-3xl font-bold text-blue-600 mt-3">0</h3>
+                    <p class="text-xs text-slate-400 mt-1">Siswa Laki-laki</p>
+                </div>
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Make-up (P)</p>
+                        <div class="w-10 h-10 bg-pink-50 text-pink-600 rounded-2xl flex items-center justify-center text-base">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </div>
+                    </div>
+                    <h3 id="stat-makeup" class="text-2xl sm:text-3xl font-bold text-pink-600 mt-3">0</h3>
+                    <p class="text-xs text-slate-400 mt-1">Siswi Perempuan</p>
+                </div>
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Bulan Ini</p>
+                        <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-base">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+                    </div>
+                    <h3 id="stat-bulan" class="text-2xl sm:text-3xl font-bold text-amber-600 mt-3">0</h3>
+                    <p class="text-xs text-slate-400 mt-1">Periode aktif</p>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center justify-between">
+                        <span>Distribusi Tingkat Kelas (X, XI, XII)</span>
+                        <i class="fa-solid fa-chart-pie text-slate-400"></i>
+                    </h3>
+                    <div class="relative h-64 flex justify-center items-center">
+                        <canvas id="gradeChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center justify-between">
+                        <span>Perbandingan Rambut vs Make-up</span>
+                        <i class="fa-solid fa-chart-column text-slate-400"></i>
+                    </h3>
+                    <div class="relative h-64 flex justify-center items-center">
+                        <canvas id="typeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: DATA TABLE ================= -->
+        <div id="view-data" class="hidden space-y-6">
+            <div class="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Rekapitulasi Pelanggaran SMAN 1 Majalaya</h2>
+                        <p class="text-xs text-slate-500">Filter, cari, dan kelola data pelanggaran seluruh kelas.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                        <button onclick="exportCSV()" class="flex-1 md:flex-initial px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs sm:text-sm font-medium transition-all shadow-sm flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-file-excel"></i><span>Ekspor CSV</span>
+                        </button>
+                        <button onclick="printReport()" class="flex-1 md:flex-initial px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white rounded-2xl text-xs sm:text-sm font-medium transition-all shadow-sm flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-print"></i><span>Cetak Laporan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters & Search Toolbar -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="relative md:col-span-1">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                        <input type="text" id="search-input" oninput="filterData()" placeholder="Cari nama siswa..." class="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+                    </div>
+                    <div>
+                        <select id="filter-tingkat" onchange="filterData()" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+                            <option value="">Semua Tingkat (X, XI, XII)</option>
+                            <option value="X">Kelas X</option>
+                            <option value="XI">Kelas XI</option>
+                            <option value="XII">Kelas XII</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="filter-kelas" onchange="filterData()" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+                            <option value="">Semua Rombel (A-F)</option>
+                            <option value="A">Rombel A</option>
+                            <option value="B">Rombel B</option>
+                            <option value="C">Rombel C</option>
+                            <option value="D">Rombel D</option>
+                            <option value="E">Rombel E</option>
+                            <option value="F">Rombel F</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="filter-jenis" onchange="filterData()" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+                            <option value="">Semua Pelanggaran</option>
+                            <option value="Rambut">Rambut (Laki-laki)</option>
+                            <option value="Make-up">Make-up (Perempuan)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Printable Report Header (Visible only when printing) -->
+                <div class="print-only text-center mb-6">
+                    <h2 class="text-xl font-bold uppercase">Pemerintah Provinsi Jawa Barat</h2>
+                    <h1 class="text-2xl font-extrabold uppercase">SMAN 1 MAJALAYA</h1>
+                    <p class="text-xs">Laporan Resmi Rekapitulasi Pelanggaran Atribut & Disiplin Siswa</p>
+                    <hr class="my-3 border-slate-400">
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto rounded-2xl border border-slate-100">
+                    <table class="w-full text-left border-collapse min-w-[700px]">
+                        <thead>
+                            <tr class="bg-slate-100/75 text-slate-600 text-xs font-semibold uppercase tracking-wider">
+                                <th class="p-3.5 pl-4">No</th>
+                                <th class="p-3.5">Nama Siswa</th>
+                                <th class="p-3.5">Gender</th>
+                                <th class="p-3.5">Kelas / Rombel</th>
+                                <th class="p-3.5">Jenis Pelanggaran</th>
+                                <th class="p-3.5">Tanggal</th>
+                                <th class="p-3.5">Catatan / Poin</th>
+                                <th class="p-3.5 text-center pr-4 no-print">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="empty-state" class="hidden text-center py-12">
+                    <div class="text-slate-300 text-5xl mb-3"><i class="fa-solid fa-folder-open"></i></div>
+                    <p class="text-slate-500 font-medium">Tidak ada data pelanggaran siswa yang ditemukan.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: INPUT FORM ================= -->
+        <div id="view-input" class="hidden max-w-2xl mx-auto">
+            <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 space-y-6">
+                <div class="border-b border-slate-100 pb-4">
+                    <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">SMAN 1 Majalaya</span>
+                    <h2 id="form-title" class="text-lg font-bold text-slate-800 mt-2">Form Pencatatan Pelanggaran Siswa</h2>
+                    <p class="text-xs text-slate-500">Pencatatan pelanggaran Rambut (Putra) dan Make-up (Putri) kelas X, XI, XII (A - F).</p>
+                </div>
+
+                <form id="violation-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                    <input type="hidden" id="edit-id">
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Nama Lengkap Siswa</label>
+                        <input type="text" id="nama" required placeholder="Contoh: Muhammad Rizky" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Jenis Kelamin</label>
+                            <select id="gender" required onchange="updateViolationOptions()" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+                                <option value="">Pilih Jenis Kelamin</option>
+                                <option value="Laki-laki">Laki-laki (Putra)</option>
+                                <option value="Perempuan">Perempuan (Putri)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Jenis Pelanggaran</label>
+                            <select id="jenis_pelanggaran" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+                                <option value="">Pilih Jenis Pelanggaran</option>
+                                <!-- Populated dynamically based on gender -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Tingkat Kelas</label>
+                            <select id="tingkat" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+                                <option value="">Pilih Tingkat</option>
+                                <option value="X">Kelas X</option>
+                                <option value="XI">Kelas XI</option>
+                                <option value="XII">Kelas XII</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Rombel Kelas (A - F)</label>
+                            <select id="kelas_huruf" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+                                <option value="">Pilih Rombel</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                                <option value="E">E</option>
+                                <option value="F">F</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Tanggal Pelanggaran</label>
+                            <input type="date" id="tanggal" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Bobot Poin Disiplin</label>
+                            <select id="poin" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+                                <option value="5">5 - Pelanggaran Ringan (Teguran)</option>
+                                <option value="10" selected>10 - Pelanggaran Sedang (Peringatan)</option>
+                                <option value="15">15 - Pelanggaran Berat (Panggilan Ortu)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Catatan Tambahan</label>
+                        <textarea id="keterangan" rows="3" placeholder="Contoh: Rambut melewati kerah baju / Lipstik terlalu mencolok" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"></textarea>
+                    </div>
+
+                    <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+                        <button type="button" onclick="switchTab('data')" class="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl text-sm font-medium transition-all">Batal</button>
+                        <button type="submit" id="submit-btn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-sm font-medium transition-all shadow-sm shadow-indigo-200">Simpan Data</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER SMAN 1 MAJALAYA -->
+    <footer class="bg-white border-t border-slate-200 mt-auto py-6">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400 space-y-1">
+            <p class="font-semibold text-slate-600">SMAN 1 MAJALAYA &bull; Kabupaten Bandung</p>
+            <p>&copy; 2026 Sistem Monitoring Pelanggaran Siswa &bull; iOS & Android Ready</p>
+        </div>
+    </footer>
+
+    <script>
+        // State Management & LocalStorage Init for SMAN 1 Majalaya
+        let violations = JSON.parse(localStorage.getItem('sman1majalaya_violations')) || [
+            { id: 1, nama: 'Aditya Pratama', gender: 'Laki-laki', tingkat: 'X', kelas_huruf: 'A', jenis_pelanggaran: 'Rambut Panjang / Gondrong', tanggal: '2026-06-10', poin: 10, keterangan: 'Rambut melewati kerah baju seragam' },
+            { id: 2, nama: 'Siti Nur Aisyah', gender: 'Perempuan', tingkat: 'XI', kelas_huruf: 'B', jenis_pelanggaran: 'Memakai Make-up Berlebihan', tanggal: '2026-06-12', poin: 10, keterangan: 'Menggunakan foundation & eyeshadow mencolok' },
+            { id: 3, nama: 'Rian Hidayat', gender: 'Laki-laki', tingkat: 'XII', kelas_huruf: 'C', jenis_pelanggaran: 'Rambut Dicat / Semir', tanggal: '2026-06-14', poin: 15, keterangan: 'Rambut dicat warna pirang' },
+            { id: 4, nama: 'Dewi Lestari', gender: 'Perempuan', tingkat: 'X', kelas_huruf: 'D', jenis_pelanggaran: 'Lipstik Mencolok', tanggal: '2026-06-15', poin: 5, keterangan: 'Memakai lipstik merah terang di sekolah' }
+        ];
+
+        let gradeChartInstance = null;
+        let typeChartInstance = null;
+
+        // Set default date to today for new entries
+        document.getElementById('tanggal').valueAsDate = new Date();
+
+        // Switch Tabs Functionality
+        function switchTab(tabId) {
+            ['dashboard', 'data', 'input'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                document.getElementById(`nav-${t}`).className = 'flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all text-indigo-100 hover:bg-indigo-600/50 flex items-center justify-center space-x-1.5';
+            });
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            document.getElementById(`nav-${tabId}`).className = 'flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all bg-white text-indigo-700 shadow-sm flex items-center justify-center space-x-1.5';
+
+            if(tabId === 'dashboard') {
+                renderDashboard();
+            } else if(tabId === 'data') {
+                filterData();
+            } else if(tabId === 'input') {
+                resetForm();
+            }
+        }
+
+        // Dynamic violation options based on gender selection (SMAN 1 Majalaya Rules)
+        function updateViolationOptions() {
+            const gender = document.getElementById('gender').value;
+            const jenisSelect = document.getElementById('jenis_pelanggaran');
+            jenisSelect.innerHTML = '<option value="">Pilih Jenis Pelanggaran</option>';
+            
+            if(gender === 'Laki-laki') {
+                const options = ['Rambut Panjang / Gondrong', 'Rambut Dicat / Semir', 'Model Tidak Sesuai Ketentuan', 'Rambut Tidak Disisir / Berantakan'];
+                options.forEach(opt => {
+                    const el = document.createElement('option');
+                    el.value = opt;
+                    el.textContent = 'Rambut: ' + opt;
+                    jenisSelect.appendChild(el);
+                });
+            } else if(gender === 'Perempuan') {
+                const options = ['Memakai Make-up Berlebihan', 'Lipstik Mencolok', 'Alis/Bulu Mata Palsu', 'Penggunaan Kosmetik Dilarang'];
+                options.forEach(opt => {
+                    const el = document.createElement('option');
+                    el.value = opt;
+                    el.textContent = 'Make-up: ' + opt;
+                    jenisSelect.appendChild(el);
+                });
+            }
+        }
+
+        // Toast Notification
+        function showToast(title, msg, isError = false) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-title').textContent = title;
+            document.getElementById('toast-msg').textContent = msg;
+            const icon = document.getElementById('toast-icon');
+            if(isError) {
+                icon.innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-500"></i>';
+            } else {
+                icon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-500"></i>';
+            }
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+
+        // Render Dashboard Stats & Charts
+        function renderDashboard() {
+            const total = violations.length;
+            const rambutCount = violations.filter(v => v.gender === 'Laki-laki').length;
+            const makeupCount = violations.filter(v => v.gender === 'Perempuan').length;
+            
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            const monthCount = violations.filter(v => v.tanggal && v.tanggal.startsWith(currentMonth)).length;
+
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-rambut').textContent = rambutCount;
+            document.getElementById('stat-makeup').textContent = makeupCount;
+            document.getElementById('stat-bulan').textContent = monthCount;
+
+            renderCharts();
+        }
+
+        function renderCharts() {
+            const ctxGrade = document.getElementById('gradeChart').getContext('2d');
+            const ctxType = document.getElementById('typeChart').getContext('2d');
+
+            const xCount = violations.filter(v => v.tingkat === 'X').length;
+            const xiCount = violations.filter(v => v.tingkat === 'XI').length;
+            const xiiCount = violations.filter(v => v.tingkat === 'XII').length;
+
+            const rambutTotal = violations.filter(v => v.gender === 'Laki-laki').length;
+            const makeupTotal = violations.filter(v => v.gender === 'Perempuan').length;
+
+            if(gradeChartInstance) gradeChartInstance.destroy();
+            if(typeChartInstance) typeChartInstance.destroy();
+
+            gradeChartInstance = new Chart(ctxGrade, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Kelas X', 'Kelas XI', 'Kelas XII'],
+                    datasets: [{
+                        data: [xCount, xiCount, xiiCount],
+                        backgroundColor: ['#4f46e5', '#9333ea', '#db2777'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+
+            typeChartInstance = new Chart(ctxType, {
+                type: 'bar',
+                data: {
+                    labels: ['Rambut (Putra)', 'Make-up (Putri)'],
+                    datasets: [{
+                        label: 'Jumlah Kasus',
+                        data: [rambutTotal, makeupTotal],
+                        backgroundColor: ['#2563eb', '#e11d48'],
+                        borderRadius: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // Filter and Display Data Table
+        function filterData() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const tingkat = document.getElementById('filter-tingkat').value;
+            const kelas = document.getElementById('filter-kelas').value;
+            const jenis = document.getElementById('filter-jenis').value;
+
+            const filtered = violations.filter(v => {
+                const matchSearch = v.nama.toLowerCase().includes(search) || (v.keterangan && v.keterangan.toLowerCase().includes(search));
+                const matchTingkat = !tingkat || v.tingkat === tingkat;
+                const matchKelas = !kelas || v.kelas_huruf === kelas;
+                const matchJenis = !jenis || (jenis === 'Rambut' && v.gender === 'Laki-laki') || (jenis === 'Make-up' && v.gender === 'Perempuan');
+                return matchSearch && matchTingkat && matchKelas && matchJenis;
+            });
+
+            const tbody = document.getElementById('table-body');
+            const emptyState = document.getElementById('empty-state');
+            tbody.innerHTML = '';
+
+            if(filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            filtered.forEach((v, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/75 transition-colors';
+                
+                const genderBadge = v.gender === 'Laki-laki' 
+                    ? '<span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold">Laki-laki (Putra)</span>'
+                    : '<span class="px-2.5 py-1 bg-pink-50 text-pink-700 rounded-full text-xs font-semibold">Perempuan (Putri)</span>';
+
+                tr.innerHTML = `
+                    <td class="p-3.5 pl-4 text-slate-500 font-medium">${index + 1}</td>
+                    <td class="p-3.5 font-semibold text-slate-800">${escapeHtml(v.nama)}</td>
+                    <td class="p-3.5">${genderBadge}</td>
+                    <td class="p-3.5"><span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md font-medium text-xs">Kelas ${v.tingkat} - Rombel ${v.kelas_huruf}</span></td>
+                    <td class="p-3.5 text-slate-700 font-medium">${escapeHtml(v.jenis_pelanggaran)}</td>
+                    <td class="p-3.5 text-slate-500 text-xs">${v.tanggal}</td>
+                    <td class="p-3.5">
+                        <span class="inline-block px-2 py-0.5 bg-amber-50 text-amber-700 rounded text-xs font-semibold mr-1">Poin: ${v.poin}</span>
+                        <span class="text-xs text-slate-500">${escapeHtml(v.keterangan || '-')}</span>
+                    </td>
+                    <td class="p-3.5 text-center pr-4 no-print">
+                        <div class="flex items-center justify-center space-x-2">
+                            <button onclick="editViolation(${v.id})" class="p-2 bg-slate-100 hover:bg-amber-50 hover:text-amber-600 text-slate-600 rounded-xl transition-all" title="Edit">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteViolation(${v.id})" class="p-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-xl transition-all" title="Hapus">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Handle Add/Edit Form Submit
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const nama = document.getElementById('nama').value;
+            const gender = document.getElementById('gender').value;
+            const jenis_pelanggaran = document.getElementById('jenis_pelanggaran').value;
+            const tingkat = document.getElementById('tingkat').value;
+            const kelas_huruf = document.getElementById('kelas_huruf').value;
+            const tanggal = document.getElementById('tanggal').value;
+            const poin = parseInt(document.getElementById('poin').value);
+            const keterangan = document.getElementById('keterangan').value;
+
+            if(id) {
+                violations = violations.map(v => v.id == id ? { id: Number(id), nama, gender, jenis_pelanggaran, tingkat, kelas_huruf, tanggal, poin, keterangan } : v);
+                showToast('Berhasil Diperbarui', `Data pelanggaran ${nama} telah diperbarui.`);
+            } else {
+                const newEntry = {
+                    id: Date.now(),
+                    nama, gender, jenis_pelanggaran, tingkat, kelas_huruf, tanggal, poin, keterangan
+                };
+                violations.unshift(newEntry);
+                showToast('Berhasil Disimpan', `Pelanggaran ${nama} berhasil dicatat.`);
+            }
+
+            localStorage.setItem('sman1majalaya_violations', JSON.stringify(violations));
+            switchTab('data');
+        }
+
+        // Edit Data
+        function editViolation(id) {
+            const v = violations.find(item => item.id === id);
+            if(!v) return;
+
+            document.getElementById('edit-id').value = v.id;
+            document.getElementById('nama').value = v.nama;
+            document.getElementById('gender').value = v.gender;
+            updateViolationOptions();
+            document.getElementById('jenis_pelanggaran').value = v.jenis_pelanggaran;
+            document.getElementById('tingkat').value = v.tingkat;
+            document.getElementById('kelas_huruf').value = v.kelas_huruf;
+            document.getElementById('tanggal').value = v.tanggal;
+            document.getElementById('poin').value = v.poin;
+            document.getElementById('keterangan').value = v.keterangan;
+
+            document.getElementById('form-title').textContent = 'Edit Data Pelanggaran Siswa SMAN 1 Majalaya';
+            document.getElementById('submit-btn').textContent = 'Perbarui Data';
+            
+            switchTab('input');
+        }
+
+        // Delete Data
+        function deleteViolation(id) {
+            if(confirm('Apakah Anda yakin ingin menghapus catatan pelanggaran ini?')) {
+                violations = violations.filter(v => v.id !== id);
+                localStorage.setItem('sman1majalaya_violations', JSON.stringify(violations));
+                showToast('Data Dihapus', 'Catatan pelanggaran berhasil dihapus.', true);
+                filterData();
+            }
+        }
+
+        // Reset Form for New Entry
+        function resetForm() {
+            document.getElementById('violation-form').reset();
+            document.getElementById('edit-id').value = '';
+            document.getElementById('tanggal').valueAsDate = new Date();
+            document.getElementById('form-title').textContent = 'Form Pencatatan Pelanggaran Siswa';
+            document.getElementById('submit-btn').textContent = 'Simpan Data';
+            updateViolationOptions();
+        }
+
+        // Export to CSV
+        function exportCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,No,Nama Siswa,Gender,Tingkat,Rombel,Pelanggaran,Tanggal,Poin,Keterangan\n";
+            violations.forEach((v, index) => {
+                let row = [index + 1, `"${v.nama}"`, v.gender, v.tingkat, v.rombel_huruf || v.kelas_huruf, `"${v.jenis_pelanggaran}"`, v.tanggal, v.poin, `"${v.keterangan || ''}"`];
+                csvContent += row.join(",") + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Pelanggaran_SMAN1Majalaya_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('Ekspor Berhasil', 'Data pelanggaran berhasil diunduh dalam format CSV.');
+        }
+
+        // Print Report
+        function printReport() {
+            window.print();
+        }
+
+        // Utility: Escape HTML
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // Initial Load
+        window.onload = function() {
+            renderDashboard();
+        }
+    </script>
+</body>
+</html>
